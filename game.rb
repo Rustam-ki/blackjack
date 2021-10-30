@@ -10,17 +10,6 @@ class Game
     @finish_round   = nil
   end
 
-  def start
-    greetings
-    new_round!
-
-    loop do
-      make_turn
-    end
-  end
-
-  private
-
   def make_turn
     action = current_player.choose_action
 
