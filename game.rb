@@ -2,56 +2,39 @@ class Game
   attr_reader :current_player
 
   def initialize
-    @user           = User.new
-    @dealer         = Dealer.new
-    @deck           = nil
-    @bank           = 0
+    @user = User.new
+    @dealer = Dealer.new
+    @deck = nil
+    @bank = 0
     @current_player = nil
-    @finish_round   = nil
+    @interface = Interface.new(@user, @dealer)
+    @finish_round = nil
+  end
+
+  def start(start)
+    @start = start
+    greetings
+    new_round!
+
+    loop do
+      make_turn
+    end
   end
 
   def make_turn
     action = current_player.choose_action
 
-    case action
-    when 1 then skip_turn
-    when 2 then take_card(current_player)
-    when 3 then @finish_round = true
-    else puts 'Wrong command'
-    end
-
-    choose_winner if @finish_round || check_three_cards!
+    @interface.turn_make(action, current_player)
   end
 
   def new_round!
-    @deck         = Deck.new
-    @finish_round = false
-    @user.refresh!
-    @dealer.refresh!
-
-    puts '===================', 'LET THE GAME BEGIN!', 'Giving you 2 cards:'
-    give_two_cards(@user)
-    @user.show_cards
-
-    puts 'Giving dealer 2 cards:'
-    give_two_cards(@dealer)
-    puts '**'
-
-    make_bets(10)
-
+    @deck = Deck.new
+    @interface.new_round(@start)
     @current_player = @user
   end
 
   def ask_for_more
-    puts 'Wanna more? <Y>'
-    action = gets.chomp.upcase
-
-    if action == 'Y'
-      new_round!
-    else
-      puts 'Всего хорошего, и спасибо за рыбу!'
-      exit!
-    end
+    @interface.ask_more(@start)
   end
 
   def choose_winner
@@ -72,19 +55,15 @@ class Game
   end
 
   def user_win
-    puts 'You win!'
-    @user.give_money(@bank)
+    @interface.win_user(@bank)
   end
 
   def user_lost
-    puts 'You lost!'
-    @dealer.give_money(@bank)
+    @interface.lost_user(@bank)
   end
 
   def user_draw
-    puts "It's draw!"
-    @user.give_money(@bank / 2)
-    @dealer.give_money(@bank / 2)
+    @interface.draw_user(@bank)
   end
 
   def check_three_cards!
@@ -92,19 +71,11 @@ class Game
   end
 
   def greetings
-    puts 'Приветствуем! Как вас зовут?'
-    @user.name = gets.chomp
+    @interface.started
   end
 
   def take_card(player)
-    puts 'Drawing a card...'
-    player.draw_card(@deck)
-    sleep(1)
-
-    if player.is_a?(User)
-      puts "#{player.class}, now your hand:"
-      @user.show_cards
-    end
+    @interface.card_take(player, @deck)
 
     skip_turn
   end
@@ -121,17 +92,11 @@ class Game
   end
 
   def skip_turn
-    change_player
-    sleep(1)
-    puts "Now its #{@current_player.class} turn."
+    @interface.turn_skip
   end
 
   def show_both_hands
-    puts 'User:'
-    @user.show_cards
-
-    puts 'Dealer:'
-    @dealer.show_cards
+    @interface.show_hands
   end
 
   def change_player
